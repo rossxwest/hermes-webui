@@ -300,3 +300,35 @@ tuning recommendation, not a v1 requirement.
    unaffected.
 4. **Config flag** wiring both halves; default off.
 5. **Tests + docs** (TESTING.md, docs/EXTENSIONS.md or a new doc, CHANGELOG).
+
+---
+
+## Implementation notes (as built)
+
+The implementation follows the proposal with the following verified deltas:
+
+- **Renderer API differs from the package README.** The correct props for
+  `@openuidev/browser-bundle` 0.1.1 are `{ response, library, isStreaming,
+  onParseResult }`. The README's `{ code, library, schema }` signature is wrong
+  for this version. In particular the content prop is `response` (not `code`)
+  and `library` receives the `openuiChatLibrary` object directly (no separate
+  `schema` prop).
+- **Render hook lives inside `highlightCode`, not a bespoke finalize call.**
+  `static/ui.js` `_renderOpenuiBlocks(container)` is invoked at the top of
+  `highlightCode`. This single insertion point covers both the live-finalize
+  path and the history/reload render path without a separate hook.
+- **Flag key is `experimental.openui` in `config.yaml`**, read by
+  `api/config.py` `is_openui_enabled(config_data)` (strict `is True`). This
+  matches the proposal exactly.
+- **Agent system-prompt fragment is generated from the bundle itself.** The
+  vendored `openuiChatLibrary.prompt()` is the authoritative source of the
+  language reference. `scripts/openui_gen_prompt.py` extracts it at vendor time
+  and writes it to `static/vendor/openui/openui-system-prompt.txt`;
+  `api/openui_prompt.py` reads that file at runtime. This means the prompt
+  always matches the pinned bundle version.
+- **Open question 2 resolved:** Renderer API confirmed as `{ response, library,
+  isStreaming, onParseResult }` against the pinned 0.1.1 bundle (see first
+  bullet above).
+- **Open question 4 resolved:** `host.html` is served with
+  `Content-Security-Policy: sandbox allow-scripts` via `api/routes.py`; the
+  opaque-origin iframe passes the existing security-header setup.

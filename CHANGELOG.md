@@ -3,6 +3,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in inline generative-UI rendering via OpenUI (off by default).** When `experimental: {openui: true}` is set in the active profile's `config.yaml`, the Hermes agent is taught **openui-lang** — a compact declarative markup — and the WebUI renders any ` ```openui ` fenced block as a sandboxed iframe card directly in the chat transcript. The renderer is the prebuilt `@openuidev/browser-bundle` 0.1.1, vendored locally under `static/vendor/openui/`; it runs in an opaque-origin iframe (`sandbox="allow-scripts"`, no `allow-same-origin`) with nonce-authenticated postMessage and zero UI→agent back-channel, so the rendered surface is strictly display-only and isolated from the host page. Prompt injection is scoped to WebUI sessions only (`surface_context.source == 'webui'`), so background loops, CLI, and messaging-gateway runs are completely unaffected. With the flag absent or off the behavior is byte-identical to today. See `docs/openui.md` for setup and `docs/rfcs/openui-generative-ui.md` for design background.
+
 ## [v0.51.369] — 2026-06-12 — Release MH (WebUI streaming honors runtime target model/base_url)
 
 ### Fixed
