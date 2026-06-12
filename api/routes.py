@@ -5602,11 +5602,14 @@ def handle_get(handler, parsed) -> bool:
             except Exception:
                 csrf_token = ""
 
+            from api.config import get_config as _get_cfg, is_openui_enabled as _is_openui_enabled
+            _cfg = _get_cfg()
             html = (
                 _INDEX_HTML_PATH.read_text(encoding="utf-8")
                 .replace("__WEBUI_VERSION__", version_token)
                 .replace("__MAX_UPLOAD_BYTES__", str(MAX_UPLOAD_BYTES))
                 .replace("__CSRF_TOKEN_JSON__", json.dumps(csrf_token))
+                .replace("__OPENUI_ENABLED__", json.dumps(_is_openui_enabled(_cfg)))
             )
             return t(
                 handler,
