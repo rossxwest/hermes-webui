@@ -9333,6 +9333,16 @@ def _serve_static(handler, parsed):
         else "public, max-age=300"
     )
 
+    # Defense-in-depth sandbox for the openui renderer entry point.
+    # The parent page embeds host.html in a sandboxed iframe; this header
+    # ensures that even a direct navigation to the URL cannot grant the
+    # renderer same-origin access to the app. Sibling subresource files
+    # (openui-bundle.min.js, openui-styles.css) are NOT sandboxed here
+    # because they are fetched as subresources by the sandboxed document.
+    # Mirror of the workspace HTML-preview pattern at ~line 10779.
+    _is_openui_host = static_file.parts[-3:] == ("vendor", "openui", "host.html")
+    csp = "sandbox allow-scripts" if _is_openui_host else None
+
     # 304 short-circuit on conditional GET.
     if handler.headers.get("If-None-Match") == etag:
         handler.send_response(304)
@@ -9340,6 +9350,8 @@ def _serve_static(handler, parsed):
         handler.send_header("Cache-Control", cache_control)
         if gz is not None:
             handler.send_header("Vary", "Accept-Encoding")
+        if csp:
+            handler.send_header("Content-Security-Policy", csp)
         handler.end_headers()
         return True
 
@@ -9356,6 +9368,8 @@ def _serve_static(handler, parsed):
         handler.send_header("Vary", "Accept-Encoding")
     if use_gzip:
         handler.send_header("Content-Encoding", "gzip")
+    if csp:
+        handler.send_header("Content-Security-Policy", csp)
     handler.end_headers()
     handler.wfile.write(body)
     return True
