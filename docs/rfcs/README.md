@@ -66,3 +66,7 @@ First-time contributor RFCs should be discussed in an issue before opening a PR.
   #3058 control-surface companion to #3400 for Queue, Steer, Stop-and-send,
   Interrupt, and leftover-steer inputs submitted while a long-running agent
   session is active.
+- [`openui-generative-ui.md`](openui-generative-ui.md) — Let the Hermes agent
+  emit OpenUI Lang that renders as an inline, display-only transcript card via
+  openui's prebuilt `@openuidev/browser-bundle` in a sandboxed iframe, reusing
+  the existing system-prompt and vendored-asset seams (no bundler/framework).
