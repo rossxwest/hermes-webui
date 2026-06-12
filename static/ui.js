@@ -274,6 +274,13 @@ function _stripWorkspaceDisplayPrefix(text){
   if(stripped !== value) return stripped.trim();
   return value.replace(/^\s*\[Workspace:[^\]]+\]\s*/,'').trim();
 }
+function _openuiNonce(){ return 'oui_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function _openuiCardHTML(nonce){
+  return '<div class="openui-card" data-nonce="'+nonce+'">'
+       +   '<iframe class="openui-card__frame" sandbox="allow-scripts" '
+       +          'src="/static/vendor/openui/host.html" title="Generated UI"></iframe>'
+       + '</div>';
+}
 function _renderUserFencedBlocks(text){
   const stash=[];
   const mathStash=[];
