@@ -178,8 +178,12 @@ Five isolated components, each with a defined interface:
   opaque-origin scheme in Security & isolation (source-identity + per-card nonce).
 
 #### 5. Feature flag / config
-- One env/config flag (name TBD against `api/config.py` conventions), **off by
-  default**.
+- One feature flag, **off by default**, following the house convention for
+  feature toggles: a nested `experimental.openui` key in the profile `config.yaml`,
+  read via an `is_openui_enabled(config_data)` helper that mirrors the existing
+  `is_unified_session_db_enabled` (`api/config.py:386`) exactly — strict `is True`,
+  **no env var** (there is no boolean `HERMES_WEBUI_*` feature-flag precedent in
+  the repo, so we don't introduce one).
 - The flag gates **both** prompt injection (1) and render hook (4), so the halves
   never drift: if the agent isn't taught OpenUI Lang, the renderer stays inert.
 
@@ -271,7 +275,9 @@ tuning recommendation, not a v1 requirement.
    See Streaming under component 3.
 2. **Renderer API stability:** confirm `Renderer` props (`code`, `library`,
    `schema`) and `openuiChatLibrary` shape against the pinned bundle version.
-3. **Config flag name/placement:** align with `api/config.py` conventions.
+3. ~~Config flag name/placement~~ **Resolved:** `experimental.openui` config key
+   via `is_openui_enabled(config_data)`, mirroring `is_unified_session_db_enabled`
+   (no env var). See component 5.
 4. **CSP interaction:** confirm sandboxed iframe + vendored bundle pass
    `_security_headers`.
 5. **Prompt-cache impact:** confirm the scoped injection doesn't measurably lower
