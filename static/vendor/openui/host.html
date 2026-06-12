@@ -5,6 +5,17 @@
 </head><body><div id="root"></div>
 <script src="./openui-bundle.min.js"></script>
 <script>
+// Sandboxed openui renderer host. Runs inside <iframe sandbox="allow-scripts">
+// (opaque origin: event.origin is "null", so authenticate by source identity +
+// a per-card nonce). Display-only: parent sends the final openui-lang once.
+//
+// Renderer API (verified against @openuidev/browser-bundle 0.1.1):
+//   window.__OpenUI = { React, createRoot, Renderer, openuiChatLibrary }
+//   <Renderer response=<openui-lang string> library=openuiChatLibrary isStreaming=false
+//             onParseResult onError />
+// NOTE: the prop is `response` (not `code`); `library` is the openuiChatLibrary
+// object itself (not `.library`). `onError` can fire non-fatally, so renderability
+// is judged by onParseResult having a `root`, not by onError.
 (function(){
   var NONCE=null, root=null;
   function post(msg){ parent.postMessage(msg, '*'); }   // opaque origin: can't target a real origin
@@ -15,11 +26,22 @@
   function render(code){
     try{
       var U=window.__OpenUI;
-      if(!U||!U.Renderer) throw new Error('openui bundle not loaded');
+      if(!U||!U.Renderer||!U.openuiChatLibrary) throw new Error('openui bundle not loaded');
       if(!root) root=U.createRoot(document.getElementById('root'));
-      var lib=U.openuiChatLibrary||{};
-      root.render(U.React.createElement(U.Renderer, {code:code, library:lib.library, schema:lib.schema}));
-      requestAnimationFrame(function(){ requestAnimationFrame(reportHeight); });
+      var failed=false;
+      root.render(U.React.createElement(U.Renderer, {
+        response: code,
+        library: U.openuiChatLibrary,
+        isStreaming: false,
+        onParseResult: function(r){
+          if(!(r && r.root)){
+            failed=true;
+            post({type:'openui:error', nonce:NONCE, message:'openui-lang did not parse to a root'});
+          }
+        }
+        // onError intentionally omitted: it fires for non-fatal validation notes too.
+      }));
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ if(!failed) reportHeight(); }); });
     }catch(e){
       post({type:'openui:error', nonce:NONCE, message:String(e&&e.message||e)});
     }
