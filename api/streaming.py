@@ -473,6 +473,11 @@ def _webui_ephemeral_system_prompt(
     delivery_prompt = _webui_delivery_context_prompt(config_data)
     if delivery_prompt:
         parts.append(delivery_prompt)
+    from api.config import is_openui_enabled
+    from api.openui_prompt import openui_prompt_fragment
+    openui_prompt = openui_prompt_fragment(is_openui_enabled(config_data), surface_context)
+    if openui_prompt:
+        parts.append(openui_prompt)
     return "\n\n".join(part for part in parts if part)
 
 
