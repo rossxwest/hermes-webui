@@ -93,5 +93,11 @@ def test_render_hook_falls_back_to_code_block_on_invalid(base_url):
             )
             assert page.locator("#openui-e2e .openui-card").count() == 0
             assert page.locator("#openui-e2e pre > code.language-openui").count() == 1
+            # A failed block must NOT be re-mounted on a subsequent highlightCode
+            # pass (history reload / panel re-render). It stays a plain code block.
+            page.evaluate("highlightCode(document.getElementById('openui-e2e'))")
+            page.wait_for_timeout(300)
+            assert page.locator("#openui-e2e .openui-card").count() == 0, "failed block was re-mounted"
+            assert page.locator("#openui-e2e pre > code.language-openui").count() == 1
         finally:
             b.close()

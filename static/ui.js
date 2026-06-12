@@ -288,7 +288,7 @@ function _renderOpenuiBlocks(container){
     for(var k=0;k<blocks.length;k++){
       var codeEl = blocks[k];
       var pre = codeEl.parentElement;
-      if(!pre || pre.getAttribute('data-openui-mounted')==='1') continue;  // idempotent
+      if(!pre || pre.getAttribute('data-openui-mounted')) continue;  // idempotent (any value: '1' mounted, 'failed' terminal)
       var code = codeEl.textContent || '';
       var nonce = _openuiNonce();
       var wrap = document.createElement('div');
@@ -320,13 +320,22 @@ function _openuiWire(frame, nonce, code, originalPre){
     }
   }
   window.addEventListener('message', onMsg);
-  // Safety: if the bundle never loads / no 'ready' within N ms, fall back.
-  setTimeout(function(){ if(!settled) _openuiFallback(frame, originalPre); }, 8000);
+  // Safety: if the bundle never loads / no 'ready' within N ms, fall back. Detach
+  // the listener too (the iframe is being removed) so it doesn't linger on window.
+  setTimeout(function(){
+    if(settled) return;
+    settled = true;
+    window.removeEventListener('message', onMsg);
+    _openuiFallback(frame, originalPre);
+  }, 8000);
 }
 
 function _openuiFallback(frame, originalPre){
   var card = frame && frame.closest ? frame.closest('.openui-card') : null;
-  if(card && originalPre){ originalPre.removeAttribute('data-openui-mounted'); card.replaceWith(originalPre); }
+  // Mark the restored block terminally ('failed', a truthy mounted-guard value) so
+  // a permanently-invalid block is NOT re-mounted on every later highlightCode pass
+  // (history reload, panel/session re-render). It simply stays a plain code block.
+  if(card && originalPre){ originalPre.setAttribute('data-openui-mounted','failed'); card.replaceWith(originalPre); }
 }
 
 function _renderUserFencedBlocks(text){
