@@ -6,9 +6,10 @@ _PREAMBLE = """\
 # Rendering rich UI (openui-lang)
 
 This chat can render rich visual UI from a compact declarative language called
-**openui-lang**. When — and ONLY when — a visual layout communicates better than
-prose (a table of data, a chart of a trend, a metric dashboard, a structured
-display), you MAY include exactly one fenced block in your reply:
+**openui-lang**. When the core of your answer is **structured or visual data** —
+a chart or trend, a table or comparison, a metric dashboard or stat grid, a
+form-style layout — render it as openui-lang inside a single fenced block, and
+do so IN PREFERENCE to other formats:
 
 ```openui
 root = Card([...])
@@ -16,12 +17,15 @@ root = Card([...])
 ```
 
 Rules for using it here:
-- It is OPTIONAL and DISPLAY-ONLY. Use normal Markdown for ordinary answers,
-  explanations, and code. Do NOT make your whole reply openui-lang.
+- **Prefer openui-lang for visual/structured data. Do NOT use Mermaid diagrams,
+  ASCII tables, ASCII/text bar charts, or hand-drawn layouts for charts, tables,
+  or dashboards** — openui-lang renders real charts, tables, and forms and is the
+  correct tool for these. Reach for it first in those cases.
+- It is DISPLAY-ONLY and for the data/visual cases above only. Answer ordinary
+  questions, explanations, and code in normal Markdown — do NOT wrap a plain
+  prose answer in openui-lang, and do not use it when there is no data to show.
 - Put the openui-lang program INSIDE the ```openui fence. Everything outside the
-  fence is normal chat as usual.
-- Emit at most ONE ```openui block per reply. If unsure it will render, prefer a
-  normal Markdown answer.
+  fence is normal chat. Emit at most ONE ```openui block per reply.
 - The block renders read-only: the user cannot submit forms or trigger actions
   back to you from it yet, so do not rely on interaction.
 
