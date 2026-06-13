@@ -4,7 +4,6 @@ Uses a _FakeHandler + handle_get() unit approach (same pattern as
 test_dashboard_probe.py) so no live server is needed. Monkeypatches
 api.config.get_config to return a controlled config dict.
 """
-import json
 from urllib.parse import urlparse
 
 

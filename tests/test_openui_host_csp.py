@@ -12,7 +12,6 @@ subresources fetched by the sandboxed document, not HTML entry points.
 Implementation uses _serve_static in api/routes.py (no live server needed —
 mirrors the pattern in test_static_asset_compression_and_cache.py).
 """
-from pathlib import Path
 from urllib.parse import urlparse
 
 
