@@ -274,6 +274,70 @@ function _stripWorkspaceDisplayPrefix(text){
   if(stripped !== value) return stripped.trim();
   return value.replace(/^\s*\[Workspace:[^\]]+\]\s*/,'').trim();
 }
+function _openuiNonce(){ return 'oui_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function _openuiCardHTML(nonce){
+  return '<div class="openui-card" data-nonce="'+nonce+'">'
+       +   '<iframe class="openui-card__frame" sandbox="allow-scripts" '
+       +          'src="/static/vendor/openui/host.html" title="Generated UI"></iframe>'
+       + '</div>';
+}
+function _renderOpenuiBlocks(container){
+  try{
+    if(!container || !(window.__HERMES_CONFIG__ && window.__HERMES_CONFIG__.openui)) return;
+    var blocks = container.querySelectorAll('pre > code.language-openui');
+    for(var k=0;k<blocks.length;k++){
+      var codeEl = blocks[k];
+      var pre = codeEl.parentElement;
+      if(!pre || pre.getAttribute('data-openui-mounted')) continue;  // idempotent (any value: '1' mounted, 'failed' terminal)
+      var code = codeEl.textContent || '';
+      var nonce = _openuiNonce();
+      var wrap = document.createElement('div');
+      wrap.innerHTML = _openuiCardHTML(nonce);
+      var card = wrap.firstElementChild;
+      var frame = card.querySelector('iframe');
+      pre.setAttribute('data-openui-mounted','1');
+      pre.replaceWith(card);
+      _openuiWire(frame, nonce, code, pre);
+    }
+  }catch(e){ /* fallback: leave code blocks as-is */ }
+}
+
+function _openuiWire(frame, nonce, code, originalPre){
+  var settled = false;
+  function onMsg(ev){
+    if(ev.source !== frame.contentWindow) return;     // source identity (origin is "null")
+    var d = ev.data; if(!d || typeof d!=='object') return;
+    if(d.type==='openui:ready'){
+      frame.contentWindow.postMessage({type:'openui:init', nonce:nonce, code:code}, '*');
+    } else if(d.nonce!==nonce){ return;               // require nonce on height/error
+    } else if(d.type==='openui:height'){
+      settled = true;
+      frame.style.height = Math.max(40, Math.min(4000, d.px|0)) + 'px';
+    } else if(d.type==='openui:error'){
+      settled = true;
+      window.removeEventListener('message', onMsg);
+      _openuiFallback(frame, originalPre);
+    }
+  }
+  window.addEventListener('message', onMsg);
+  // Safety: if the bundle never loads / no 'ready' within N ms, fall back. Detach
+  // the listener too (the iframe is being removed) so it doesn't linger on window.
+  setTimeout(function(){
+    if(settled) return;
+    settled = true;
+    window.removeEventListener('message', onMsg);
+    _openuiFallback(frame, originalPre);
+  }, 8000);
+}
+
+function _openuiFallback(frame, originalPre){
+  var card = frame && frame.closest ? frame.closest('.openui-card') : null;
+  // Mark the restored block terminally ('failed', a truthy mounted-guard value) so
+  // a permanently-invalid block is NOT re-mounted on every later highlightCode pass
+  // (history reload, panel/session re-render). It simply stays a plain code block.
+  if(card && originalPre){ originalPre.setAttribute('data-openui-mounted','failed'); card.replaceWith(originalPre); }
+}
+
 function _renderUserFencedBlocks(text){
   const stash=[];
   const mathStash=[];
@@ -9919,6 +9983,9 @@ function highlightCode(container) {
   if(typeof Prism === 'undefined') return;
   const el = container || $('msgInner');
   if(!el) return;
+  // Swap completed OpenUI Lang blocks for sandboxed iframe cards BEFORE highlighting,
+  // so they're removed before Prism touches them. Covers live finalize + history paths.
+  _renderOpenuiBlocks(el);
   // Prefer per-element highlight (avoids the full DOM walk of highlightAllUnder)
   const blocks = el.querySelectorAll('pre code:not([data-highlighted])');
   if(blocks.length === 0) return;

@@ -396,6 +396,19 @@ def is_unified_session_db_enabled(config_data: dict | None = None) -> bool:
     return experimental.get("unified_session_db") is True
 
 
+def is_openui_enabled(config_data: dict | None = None) -> bool:
+    """Return the OpenUI generative-UI feature flag. Off by default.
+
+    Mirrors is_unified_session_db_enabled: a nested experimental.openui key,
+    strict `is True`. Enabled via a profile config.yaml: experimental: {openui: true}.
+    """
+    active_cfg = config_data if isinstance(config_data, dict) else cfg
+    experimental = active_cfg.get("experimental", {}) if isinstance(active_cfg, dict) else {}
+    if not isinstance(experimental, dict):
+        return False
+    return experimental.get("openui") is True
+
+
 def reload_config() -> None:
     """Reload config.yaml from the active profile's directory."""
     global _cfg_mtime, _cfg_path, _cfg_fingerprint

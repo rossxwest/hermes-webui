@@ -5431,3 +5431,7 @@ html[data-conversation-outline="enabled"] #outlineToggleBtn:not([hidden]){displa
 @media(max-width:900px){
   #outlineToggleBtn,#outlinePanelWrapper{display:none!important;}
 }
+
+/* OpenUI sandboxed card */
+.openui-card{margin:8px 0;border:1px solid var(--border,#2a2a2a);border-radius:8px;overflow:hidden;background:transparent}
+.openui-card__frame{display:block;width:100%;border:0;height:0}

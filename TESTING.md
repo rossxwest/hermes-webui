@@ -102,6 +102,37 @@ To widen the guard, fix the pre-existing intentional hits first (as of 2026-05-3
 `no-dupe-keys` ×92 i18n locale-fallback, `no-func-assign` ×2 panel override,
 `no-redeclare` ×1) then promote the rule into the config.
 
+## OpenUI generative-UI tests
+
+The OpenUI feature has its own test suite that covers config-flag semantics,
+prompt injection wiring, CSP headers, and end-to-end rendering.
+
+```bash
+python -m pytest tests/test_openui_*.py
+```
+
+| File | What it checks |
+|---|---|
+| `test_openui_config_flag.py` | `is_openui_enabled` — strict `is True` semantics |
+| `test_openui_prompt_injection.py` | prompt fragment present iff flag on |
+| `test_openui_prompt_wiring.py` | fragment wired into ephemeral system prompt |
+| `test_openui_host_csp.py` | host.html served with `sandbox allow-scripts` CSP |
+| `test_openui_host_render.py` | fixture openui-lang renders in host.html *(playwright)* |
+| `test_openui_frontend_flag.py` | frontend flag gating via `window.__HERMES_CONFIG__` |
+| `test_openui_render_hook.py` | `_renderOpenuiBlocks` JS hook *(node)* |
+| `test_openui_e2e_render.py` | end-to-end render + code-block fallback *(playwright)* |
+
+Tests marked `@pytest.mark.integration` (`test_openui_host_render.py` and
+`test_openui_e2e_render.py`) drive a real headless Chromium instance and
+require playwright to be installed first:
+
+```bash
+pip install playwright && playwright install chromium
+```
+
+The non-integration tests run without a browser and are included in the standard
+`pytest tests/` run.
+
 ---
 
 ## How to Use This Document

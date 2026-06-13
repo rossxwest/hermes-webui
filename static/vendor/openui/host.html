@@ -1,0 +1,62 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="./openui-styles.css">
+<style>html,body{margin:0;padding:0;background:transparent}#root{padding:8px}</style>
+</head><body><div id="root"></div>
+<script src="./openui-bundle.min.js"></script>
+<script>
+// Sandboxed openui renderer host. Runs inside <iframe sandbox="allow-scripts">
+// (opaque origin: event.origin is "null", so authenticate by source identity +
+// a per-card nonce). Display-only: parent sends the final openui-lang once.
+//
+// Renderer API (verified against @openuidev/browser-bundle 0.1.1):
+//   window.__OpenUI = { React, createRoot, Renderer, openuiChatLibrary }
+//   <Renderer response=<openui-lang string> library=openuiChatLibrary isStreaming=false
+//             onParseResult onError />
+// NOTE: the prop is `response` (not `code`); `library` is the openuiChatLibrary
+// object itself (not `.library`). `onError` can fire non-fatally, so renderability
+// is judged by onParseResult having a `root`, not by onError.
+(function(){
+  var NONCE=null, root=null;
+  function post(msg){ parent.postMessage(msg, '*'); }   // opaque origin: can't target a real origin
+  function reportHeight(){
+    if(!NONCE) return;
+    post({type:'openui:height', nonce:NONCE, px:document.documentElement.scrollHeight});
+  }
+  function render(code){
+    try{
+      var U=window.__OpenUI;
+      if(!U||!U.Renderer||!U.openuiChatLibrary) throw new Error('openui bundle not loaded');
+      if(!root) root=U.createRoot(document.getElementById('root'));
+      var failed=false;
+      root.render(U.React.createElement(U.Renderer, {
+        response: code,
+        library: U.openuiChatLibrary,
+        isStreaming: false,
+        onParseResult: function(r){
+          if(!(r && r.root)){
+            failed=true;
+            post({type:'openui:error', nonce:NONCE, message:'openui-lang did not parse to a root'});
+          }
+        }
+        // onError intentionally omitted: it fires for non-fatal validation notes too.
+      }));
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ if(!failed) reportHeight(); }); });
+    }catch(e){
+      post({type:'openui:error', nonce:NONCE, message:String(e&&e.message||e)});
+    }
+  }
+  window.addEventListener('message', function(ev){
+    if(ev.source!==window.parent) return;            // source-identity check (origin is "null")
+    var d=ev.data; if(!d||typeof d!=='object') return;
+    if(d.type==='openui:init'){
+      if(NONCE && d.nonce!==NONCE) return;            // lock to first nonce
+      NONCE=d.nonce;
+      render(String(d.code||''));
+    }
+  });
+  window.addEventListener('resize', reportHeight);
+  post({type:'openui:ready'});
+})();
+</script>
+</body></html>

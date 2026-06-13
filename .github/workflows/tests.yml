@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
 
       - name: Install ruff
         run: pip install ruff
@@ -65,7 +65,10 @@ jobs:
       # failure picture across the matrix in a single run.
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        # Local dev and this fork standardize on Python 3.13, so CI only exercises
+        # 3.13 (dropped the 3.11/3.12 rows). Upstream nesquena/hermes-webui still
+        # runs the full 3.11–3.13 matrix.
+        python-version: ['3.13']
         # Split the suite across 3 parallel shards per Python version. pytest-shard
         # partitions tests deterministically by test-id hash; the suite was made
         # shard-safe (no cross-test state leakage) so every shard passes

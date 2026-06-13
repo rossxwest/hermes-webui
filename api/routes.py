@@ -5623,11 +5623,14 @@ def handle_get(handler, parsed) -> bool:
             except Exception:
                 csrf_token = ""
 
+            from api.config import get_config as _get_cfg, is_openui_enabled as _is_openui_enabled
+            _cfg = _get_cfg()
             html = (
                 _INDEX_HTML_PATH.read_text(encoding="utf-8")
                 .replace("__WEBUI_VERSION__", version_token)
                 .replace("__MAX_UPLOAD_BYTES__", str(MAX_UPLOAD_BYTES))
                 .replace("__CSRF_TOKEN_JSON__", json.dumps(csrf_token))
+                .replace("__OPENUI_ENABLED__", json.dumps(_is_openui_enabled(_cfg)))
             )
             return t(
                 handler,
@@ -9354,6 +9357,16 @@ def _serve_static(handler, parsed):
         else "public, max-age=300"
     )
 
+    # Defense-in-depth sandbox for the openui renderer entry point.
+    # The parent page embeds host.html in a sandboxed iframe; this header
+    # ensures that even a direct navigation to the URL cannot grant the
+    # renderer same-origin access to the app. Sibling subresource files
+    # (openui-bundle.min.js, openui-styles.css) are NOT sandboxed here
+    # because they are fetched as subresources by the sandboxed document.
+    # Mirror of the workspace HTML-preview pattern at ~line 10779.
+    _is_openui_host = static_file.parts[-3:] == ("vendor", "openui", "host.html")
+    csp = "sandbox allow-scripts" if _is_openui_host else None
+
     # 304 short-circuit on conditional GET.
     if handler.headers.get("If-None-Match") == etag:
         handler.send_response(304)
@@ -9361,6 +9374,8 @@ def _serve_static(handler, parsed):
         handler.send_header("Cache-Control", cache_control)
         if gz is not None:
             handler.send_header("Vary", "Accept-Encoding")
+        if csp:
+            handler.send_header("Content-Security-Policy", csp)
         handler.end_headers()
         return True
 
@@ -9377,6 +9392,8 @@ def _serve_static(handler, parsed):
         handler.send_header("Vary", "Accept-Encoding")
     if use_gzip:
         handler.send_header("Content-Encoding", "gzip")
+    if csp:
+        handler.send_header("Content-Security-Policy", csp)
     handler.end_headers()
     handler.wfile.write(body)
     return True
